@@ -1,4 +1,6 @@
 extern crate nalgebra as na;
+extern crate rand;
+use rand::Rng;
 
 
 trait Model {
@@ -31,7 +33,8 @@ impl Model for Line2D {
     const MIN_SAMPLE_SIZE:  usize = 2;
 
     fn distance(&self, p: &Self::Point) -> f64 {
-        self.params.dot(p).abs()
+        
+        self.params.normalize().dot(&p.normalize()).abs()
     }
 
     fn from_points(points: &Vec<Self::Point>) -> Line2D {
@@ -40,7 +43,8 @@ impl Model for Line2D {
         // TODO: simplify code. Would like  to write it  like this:
         // let A = DMatf64::from_columns(points.iter())
         // let (ev, lambdas) = (A.t() * A).eigen();
-        // return ev[0]    
+        // return ev[0]
+        assert!(points.len() >= Self::MIN_SAMPLE_SIZE);    
 
         let mut a = na::DMatrix::<f64>::zeros(3, points.len());
         for (i, point) in points.iter().enumerate() {
@@ -60,13 +64,18 @@ impl Model for Line2D {
     fn is_degenerate(points: &Vec<Self::Point>) -> bool {
         assert!(points.len() == Self::MIN_SAMPLE_SIZE);  // TODO: check at compile time
 
-        false
+        points[0] != points[1]  // FIXME: relative_eq(epsilon...)
     }
 }
 
-fn random_sample<T: Clone>(points: &Vec<T>, size: usize) -> Vec<T> {
-    // FIXME: Actually compile
-    Vec::<T>::from(&points[0..size])
+fn random_sample<T: Clone>(items: &Vec<T>, size: usize) -> Vec<T> {
+    let mut sample = Vec::<T>::new();
+    for _ in 0..size {
+        let index = rand::thread_rng().gen_range(0, items.len());
+        sample.push(items[index].clone());
+    }
+    
+    sample
 }
 
 fn ransac<T: Model>(points: &Vec<T::Point>, inlier_threshold: f64, num_iterations: u32) -> T
@@ -84,6 +93,10 @@ fn ransac<T: Model>(points: &Vec<T::Point>, inlier_threshold: f64, num_iteration
             candidate.distance(point) < inlier_threshold
         ).map(|point| point.clone()).collect()
     );
+
+    // Every model is created from MIN_SAMPLE_SIZE instances, so each
+    // inlier set must have enough
+    // assert!(inlier_sets.all(|inliers: Vec<T::Point>| inliers.len() > T::MIN_SAMPLE_SIZE));
     
     let largest_inlier_set = inlier_sets.max_by_key(
         |inliers: &Vec<T::Point>| inliers.len()
@@ -96,11 +109,16 @@ fn ransac<T: Model>(points: &Vec<T::Point>, inlier_threshold: f64, num_iteration
 fn main() {
     let p1 = na::Vector3::new(1., 2., 1.);
     let p2 = na::Vector3::new(2., 3., 1.);
-    let p3 = na::Vector3::new(3., 3., 1.);
-    let all_points = vec![p1, p2, p3];
+    let p3 = na::Vector3::new(3., 4., 1.);
+    let p4 = na::Vector3::new(50., 50., 1.);
+    let all_points = vec![p1, p2, p3, p4];
     // let line = Line2D::from_points(&vec![p1, p2]);
-    let estimate = ransac::<Line2D>(&all_points, 2., 10);
+    let estimate = ransac::<Line2D>(&all_points, 0.1, 100);
     // let sample = random_sample(&all_points);
 
-    println!("{}", estimate);
+    let mut line = estimate.params.clone();
+
+    line /= -line[1];
+
+    println!("Line: y = {} * x + {}", line[0], line[2]);
 }

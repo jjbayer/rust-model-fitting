@@ -5,3 +5,4 @@ authors = ["Joris Bayer <joris.bayer@pm.me>"]
 
 [dependencies]
 nalgebra = "0.16"
+rand = "0.6"
