@@ -1,6 +1,12 @@
 extern crate nalgebra as na;
 extern crate rand;
 
+extern crate plotlib;
+use plotlib::scatter::Scatter;
+use plotlib::view::View;
+use plotlib::page::Page;
+use plotlib::style::Line;
+
 mod lib;
 use lib::Model;
 use lib::ransac;
@@ -64,7 +70,7 @@ fn main() {
     let p1 = na::Vector3::new(1., 2., 1.);
     let p2 = na::Vector3::new(2., 3., 1.);
     let p3 = na::Vector3::new(3., 4., 1.);
-    let p4 = na::Vector3::new(50., 50., 1.);
+    let p4 = na::Vector3::new(50., 20., 1.);
     let all_points = vec![p1, p2, p3, p4];
     // let line = Line2D::from_points(&vec![p1, p2]);
     let estimate = ransac::<Line2D>(&all_points, 0.1, 100);
@@ -75,4 +81,24 @@ fn main() {
     line /= -line[1];
 
     println!("Line: y = {} * x + {}", line[0], line[2]);
+
+    // TODO: why can't I write map(...).collect()?
+    let mut data = Vec::<(f64,f64)>::new();
+    for p in all_points.iter() {
+        data.push((p[0]/p[2], p[1]/p[2]));
+    }
+
+    let s1 = Scatter::from_vec(&data);
+
+    let estimated_line = plotlib::function::Function::new(|x| line[0] * x + line[2], 0.0, 50.0)
+        .style(plotlib::function::Style::new().colour("red"));
+
+    let v = View::new().add(&s1).add(&estimated_line);
+
+    Page::single(&v).save("ransac.svg");
+
+
+    
+    // let v = plotlib::view::View::new().add(&f1).add(&f2).add(&f3);
+    // plotlib::page::Page::single(&v).save("function.svg");
 }
