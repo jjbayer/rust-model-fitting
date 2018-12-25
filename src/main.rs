@@ -30,8 +30,8 @@ impl Model for Line2D {
     const MIN_SAMPLE_SIZE:  usize = 2;
 
     fn distance(&self, p: &Self::Point) -> f64 {
-        
-        self.params.normalize().dot(&p.normalize()).abs()
+        let p_norm = p / p[2];
+        self.params.normalize().dot(&p_norm).abs()
     }
 
     fn from_points(points: &Vec<Self::Point>) -> Line2D {
@@ -66,25 +66,14 @@ impl Model for Line2D {
 }
 
 
-fn main() {
-    let p1 = na::Vector3::new(1., 2., 1.);
-    let p2 = na::Vector3::new(2., 3., 1.);
-    let p3 = na::Vector3::new(3., 4., 1.);
-    let p4 = na::Vector3::new(50., 20., 1.);
-    let all_points = vec![p1, p2, p3, p4];
-    // let line = Line2D::from_points(&vec![p1, p2]);
-    let estimate = ransac::<Line2D>(&all_points, 0.1, 100);
-    // let sample = random_sample(&all_points);
-
+fn plot(points: &Vec<<Line2D as Model>::Point>, estimate: &Line2D)
+{
     let mut line = estimate.params.clone();
-
     line /= -line[1];
-
-    println!("Line: y = {} * x + {}", line[0], line[2]);
 
     // TODO: why can't I write map(...).collect()?
     let mut data = Vec::<(f64,f64)>::new();
-    for p in all_points.iter() {
+    for p in points.iter() {
         data.push((p[0]/p[2], p[1]/p[2]));
     }
 
@@ -96,9 +85,17 @@ fn main() {
     let v = View::new().add(&s1).add(&estimated_line);
 
     Page::single(&v).save("ransac.svg");
+}
 
+fn main() {
+    let points = vec![
+        na::Vector3::new(1., 2., 1.),
+        na::Vector3::new(2., 3., 1.),
+        na::Vector3::new(3., 4., 1.),
+         na::Vector3::new(4., 5., 1.),
+        na::Vector3::new(50., 20., 1.),
+    ];
+    let estimate = ransac::<Line2D>(&points, 1., 100);
 
-    
-    // let v = plotlib::view::View::new().add(&f1).add(&f2).add(&f3);
-    // plotlib::page::Page::single(&v).save("function.svg");
+    plot(&points, &estimate);
 }
