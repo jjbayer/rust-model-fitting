@@ -17,22 +17,21 @@ pub trait Model {
 
 
 
-fn random_sample<T: Clone>(items: &Vec<T>, size: usize) -> Vec<T> {
-    let mut sample = Vec::<T>::new();
-    for _ in 0..size {
+fn random_sample<'a, T: Clone>(items: &'a Vec<T>, size: usize)
+    -> impl Iterator<Item=T> + 'a
+{
+    (0..size).map(move |_| {
         let index = rand::thread_rng().gen_range(0, items.len());
-        sample.push(items[index].clone());
-    }
-    
-    sample
+        
+        items[index].clone()
+    })
 }
 
 pub fn ransac<T: Model>(points: &Vec<T::Point>, inlier_threshold: f64, num_iterations: u32) -> T
     where T::Point: Clone
-{
-  
+{ 
     let candidates = (0..num_iterations)
-        .map(|_| random_sample(points, T::MIN_SAMPLE_SIZE))
+        .map(|_| random_sample(points, T::MIN_SAMPLE_SIZE).collect())
         .filter(|sample| ! T::is_degenerate(sample))
         .map(|sample| T::from_points(&sample));
     ;
