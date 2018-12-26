@@ -33,11 +33,9 @@ fn plot(points: &Vec<<Line2D as Model>::Point>, estimate: &Line2D)
     let mut line = estimate.params.clone();
     line /= -line[1];
 
-    // TODO: why can't I write map(...).collect()?
-    let mut data = Vec::<(f64,f64)>::new();
-    for p in points.iter() {
-        data.push((p[0]/p[2], p[1]/p[2]));
-    }
+    let data: Vec<(f64, f64)> = points.iter().map(
+        |p| (p[0]/p[2], p[1]/p[2])
+    ).collect();
 
     let s1 = Scatter::from_vec(&data);
 
