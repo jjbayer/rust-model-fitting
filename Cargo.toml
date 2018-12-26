@@ -6,4 +6,5 @@ authors = ["Joris Bayer <joris.bayer@pm.me>"]
 [dependencies]
 nalgebra = "0.16"
 rand = "0.6"
-plotlib = "0.3"
+plotlib = "0.3.0"
+ordered-float = "0.5"

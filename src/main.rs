@@ -1,6 +1,9 @@
 extern crate nalgebra as na;
 extern crate rand;
 
+extern crate ordered_float;
+use ordered_float::OrderedFloat;
+
 extern crate plotlib;
 use plotlib::scatter::Scatter;
 use plotlib::view::View;
@@ -37,25 +40,23 @@ impl Model for Line2D {
     fn from_points(points: &Vec<Self::Point>) -> Line2D {
         // TODO: take iterator as parameter
 
-        // TODO: simplify code. Would like  to write it  like this:
-        // let A = DMatf64::from_columns(points.iter())
-        // let (ev, lambdas) = (A.t() * A).eigen();
-        // return ev[0]
-        assert!(points.len() >= Self::MIN_SAMPLE_SIZE);    
+        assert!(points.len() >= Self::MIN_SAMPLE_SIZE);
 
-        let mut a = na::DMatrix::<f64>::zeros(3, points.len());
-        for (i, point) in points.iter().enumerate() {
-            a.set_column(i, point);
-        } 
+        type Points = na::Matrix<f64, na::U3, na::Dynamic, na::MatrixVec<f64, na::U3, na::Dynamic>>;
+        let a = Points::from_columns(&points[..]);
+
+        // let A = DMatf64::from_columns(points.iter())
+
+        // Get  eigenvector of smallest eigen value
         let ev = (&a * a.transpose()).symmetric_eigen();
-        let mut mini = 0;
-        let mut minv = std::f64::INFINITY;
-        for (i, lambda) in ev.eigenvalues.iter().enumerate() {
-            if lambda < &minv { mini = i; minv = *lambda; }
-        }
-        let c = ev.eigenvectors.column(mini);
-        // TODO: convert dynamic to fixed
-        Line2D {params: Self::Point::new(c[0], c[1], c[2])}
+        let minimum = ev.eigenvalues
+            .iter()
+            .enumerate()
+            .min_by_key(|&(_, lambda)| OrderedFloat(*lambda));
+        let (index, _) = minimum.expect("No eigenvalues found");
+        let v = ev.eigenvectors.column(index);
+
+        Line2D {params: Self::Point::new(v[0], v[1], v[2])}
     }
 
     fn is_degenerate(points: &Vec<Self::Point>) -> bool {
@@ -89,10 +90,10 @@ fn plot(points: &Vec<<Line2D as Model>::Point>, estimate: &Line2D)
 
 fn main() {
     let points = vec![
-        na::Vector3::new(1., 2., 1.),
-        na::Vector3::new(2., 3., 1.),
-        na::Vector3::new(3., 4., 1.),
-         na::Vector3::new(4., 5., 1.),
+        na::Vector3::new(1.1, 2.04, 1.),
+        na::Vector3::new(2.2, 3.1, 1.),
+        na::Vector3::new(3.05, 4.3, 1.),
+         na::Vector3::new(4.2, 5.15, 1.),
         na::Vector3::new(50., 20., 1.),
     ];
     let estimate = ransac::<Line2D>(&points, 1., 100);
