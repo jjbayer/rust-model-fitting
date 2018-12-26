@@ -1,5 +1,5 @@
 extern crate rand;
-use rand::Rng;
+use self::rand::Rng;
 
 
 pub fn random_sample<'a, T: Clone>(items: &'a Vec<T>, size: usize)

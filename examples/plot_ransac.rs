@@ -8,7 +8,7 @@ use plotlib::view::View;
 use plotlib::page::Page;
 use plotlib::style::Line;
 
-mod model_fitting;
+extern crate model_fitting;
 use model_fitting::model::Model;
 use model_fitting::line2d::Line2D;
 use model_fitting::ransac::ransac;
@@ -19,7 +19,7 @@ fn main() {
         na::Vector3::new(1.1, 2.04, 1.),
         na::Vector3::new(2.2, 3.1, 1.),
         na::Vector3::new(3.05, 4.3, 1.),
-         na::Vector3::new(4.2, 5.15, 1.),
+        na::Vector3::new(4.2, 5.15, 1.),
         na::Vector3::new(50., 20., 1.),
     ];
     let estimate = ransac::<Line2D>(&points, 1., 100);
@@ -47,4 +47,5 @@ fn plot(points: &Vec<<Line2D as Model>::Point>, estimate: &Line2D)
     let v = View::new().add(&s1).add(&estimated_line);
 
     Page::single(&v).save("ransac.svg");
+    println!("Saved ransac.svg");
 }
